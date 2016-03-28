@@ -1,25 +1,103 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
 output: 
-  html_document:
-    keep_md: true
+    html_document:
+        keep_md: true
 ---
 
+#PA1_template.Rmd
+##mbieganski
+##27 marca 2016
 
-## Loading and preprocessing the data
+1. Code for reading in the dataset and/or processing the data
 
+```{r}
+nadf <- read.csv("activity.csv")
+df <- nadf[complete.cases(nadf$steps),]
+```
 
+2. Histogram of the total number of steps taken each day
 
-## What is mean total number of steps taken per day?
+```{r}
+library(ggplot2)
 
+sumdf <- aggregate(df$steps, by=list(date=df$date), FUN=sum)
+meandf <- aggregate(df$steps, by=list(date=df$date), FUN=mean)
+mediandf <- aggregate(df$steps, by=list(date=df$date), FUN=median)
 
+names(meandf) <- c("day", "mean")
+names(mediandf) <- c("day", "median")
 
-## What is the average daily activity pattern?
+ggplot(sumdf, aes(x=date, y=x)) + geom_bar(stat="identity") + ylab("Steps") + xlab("Date") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
 
+3. Mean and median number of steps taken each day
 
+Mean
+```{r}
+meandf
+```
 
-## Imputing missing values
+Median
+```{r}
+mediandf
+```
 
+4. Time series plot of the average number of steps taken
 
+```{r}
+medianIntervalDF <- aggregate(df$steps, by=list(interval=df$interval), FUN=median)
+plot(medianIntervalDF$interval, medianIntervalDF$x, type = "l", ylab = "Mean steps", xlab = "")
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+5. The 5-minute interval that, on average, contains the maximum number of steps
+
+```{r}
+max(medianIntervalDF$x)
+subset(medianIntervalDF, x == max(medianIntervalDF$x), select = interval)
+```
+
+6. Code to describe and show a strategy for imputing missing data
+
+```{r}
+datasetSummary <- summary(nadf)
+datasetSummary[7,1]
+```
+
+```{r, warning=FALSE}
+meanIntervalDF <- aggregate(df$steps, by=list(interval=df$interval), FUN=mean)
+df <- merge(x = nadf, y = meanIntervalDF, by = "interval", all = TRUE)
+df$steps[is.na(df$steps)] <- df$x
+```
+
+7. Histogram of the total number of steps taken each day after missing values are imputed
+
+```{r}
+
+sumdf <- aggregate(df$steps, by=list(date=df$date), FUN=sum)
+meandf <- aggregate(df$steps, by=list(date=df$date), FUN=mean)
+mediandf <- aggregate(df$steps, by=list(date=df$date), FUN=median)
+
+names(meandf) <- c("day", "mean")
+names(mediandf) <- c("day", "median")
+```
+
+Mean
+```{r}
+meandf
+```
+
+Median
+```{r}
+mediandf
+```
+
+8. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+```{r}
+df$weekday  <- factor((weekdays(as.POSIXlt(df$date)) %in% c("poniedzia³ek", "wtorek", "œroda", "czwartek", "pi¹tek")), levels=c(FALSE, TRUE), labels=c('weekend', 'weekday'))
+
+meanIntervalDF <- aggregate(df$steps, by=list(interval=df$interval, weekday=df$weekday), FUN=mean)
+
+library(lattice)
+xyplot(x~interval|weekday,meanIntervalDF,type='l',layout=c(1, 2))
+```
